@@ -60,7 +60,7 @@ public:
   virtual int main(int argc, char **argv)
   {
     const char *usageText =
-    "Usage: %1$s [options]\n";
+      "Usage: %1$s [options]\n";
     const CmdLineOptionDescriptor options[] = {
       { 'l', "loglevel",        true,  "level;set max level of log message detail to show on stderr" },
       { 'W', "jsonapiport",     true,  "port;server port number for JSON API" },
@@ -143,7 +143,7 @@ public:
     JsonObjectPtr answer = JsonObject::newObj();
     // Decode mg44-style request (HTTP wrapped in JSON)
     if (Error::isOK(aError)) {
-      LOG(LOG_INFO,"API request: %s\n", aRequest->c_strValue());
+      LOG(LOG_INFO,"API request: %s", aRequest->c_strValue());
       JsonObjectPtr o;
       o = aRequest->get("method");
       if (o) {
@@ -169,7 +169,7 @@ public:
       LOG(LOG_ERR,"Invalid JSON request");
       answer->add("Error", JsonObject::newString(aError->description()));
     }
-    LOG(LOG_INFO,"API answer: %s\n", answer->c_strValue());
+    LOG(LOG_INFO,"API answer: %s", answer->c_strValue());
     err = aConnection->sendMessage(answer);
     aConnection->closeAfterSend();
   }
@@ -197,6 +197,37 @@ public:
             sbbComm->sendRawCommand(nb, bytes, NULL);
             delete bytes;
           }
+        }
+      }
+    }
+    else if (aUri=="/module") {
+      if (aIsAction) {
+        if (aData->get("addr", o)) {
+          int moduleAddr = o->int32Value();
+          if (aData->get("pos", o)) {
+            int position = o->int32Value();
+            // create command
+            uint8_t poscmd[4];
+            poscmd[0]=0xFF;
+            poscmd[1]=0xC0;
+            poscmd[2]=moduleAddr;
+            poscmd[3]=position;
+            sbbComm->sendRawCommand(sizeof(poscmd), poscmd, NULL);
+          }
+        }
+      }
+    }
+    else if (aUri=="/scan") {
+      if (aIsAction) {
+        for (int i=0; i<256; i++) {
+          // create command
+          uint8_t poscmd[5];
+          poscmd[0]=0xFF;
+          poscmd[1]=0xC0;
+          poscmd[3]=0x51;
+          poscmd[2]=i;
+          poscmd[4]=21;
+          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, NULL);
         }
       }
     }

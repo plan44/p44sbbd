@@ -54,7 +54,7 @@ SbbComm::~SbbComm()
 
 void SbbComm::setConnectionSpecification(const char *aConnectionSpec, uint16_t aDefaultPort)
 {
-  LOG(LOG_DEBUG, "SbbComm::setConnectionSpecification: %s\n", aConnectionSpec);
+  LOG(LOG_DEBUG, "SbbComm::setConnectionSpecification: %s", aConnectionSpec);
   if (strcmp(aConnectionSpec,"simulation")==0) {
     // simulation mode
   }
@@ -87,14 +87,14 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
     // enable transmitter
     // %%% for now, assume adapter will do that automatically.
     // %%% for linux RS485 support, see http://retis.sssup.it/~scordino/code/serial-rs485.txt
-//    serialComm->setRTS(true);
+    serialComm->setRTS(true);
     // send break
-    serialComm->sendBreak();
+    //serialComm->sendBreak();
     // now let standard transmitter do the rest
     res = standardTransmitter(aNumBytes, aBytes);
   }
   else {
-    LOG(LOG_DEBUG, "SbbComm::sbbTransmitter error - connection could not be established!\n");
+    LOG(LOG_DEBUG, "SbbComm::sbbTransmitter error - connection could not be established!");
   }
   return res;
 }
