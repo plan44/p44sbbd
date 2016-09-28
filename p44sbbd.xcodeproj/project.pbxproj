@@ -34,6 +34,7 @@
 		ED8623201AC29DB700CB818B /* fnv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED8622FE1AC29DB600CB818B /* fnv.cpp */; };
 		ED8623211AC29DB700CB818B /* logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED8623001AC29DB600CB818B /* logger.cpp */; };
 		ED8623221AC29DB700CB818B /* jsonobject.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED8623021AC29DB600CB818B /* jsonobject.cpp */; };
+		EDDC97781D9BCD910099C613 /* spi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EDDC97761D9BCD910099C613 /* spi.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -113,6 +114,8 @@
 		ED8623031AC29DB600CB818B /* jsonobject.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = jsonobject.hpp; sourceTree = "<group>"; };
 		ED8623041AC29DB600CB818B /* p44_common.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = p44_common.hpp; sourceTree = "<group>"; };
 		ED8623051AC29DB600CB818B /* gpio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gpio.h; sourceTree = "<group>"; };
+		EDDC97761D9BCD910099C613 /* spi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = spi.cpp; sourceTree = "<group>"; };
+		EDDC97771D9BCD910099C613 /* spi.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = spi.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +159,8 @@
 		ED8622C91AC29D7A00CB818B /* p44utils */ = {
 			isa = PBXGroup;
 			children = (
+				EDDC97761D9BCD910099C613 /* spi.cpp */,
+				EDDC97771D9BCD910099C613 /* spi.hpp */,
 				ED8622CD1AC29DB600CB818B /* analogio.cpp */,
 				ED8622CE1AC29DB600CB818B /* analogio.hpp */,
 				ED8622CF1AC29DB600CB818B /* application.cpp */,
@@ -292,6 +297,7 @@
 				ED8623211AC29DB700CB818B /* logger.cpp in Sources */,
 				ED8623131AC29DB700CB818B /* utils.cpp in Sources */,
 				ED1A9AE81CA0993800F4A22E /* sbbcomm.cpp in Sources */,
+				EDDC97781D9BCD910099C613 /* spi.cpp in Sources */,
 				ED86230C1AC29DB700CB818B /* error.cpp in Sources */,
 				ED86230F1AC29DB700CB818B /* iopin.cpp in Sources */,
 				ED86231E1AC29DB700CB818B /* crc32.cpp in Sources */,
@@ -344,6 +350,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
+					"/usr/local/include/json-c",
 					"$(PROJECT_DIR)/src",
 				);
 				LIBRARY_SEARCH_PATHS = "\"/usr/local/lib\"";
@@ -384,6 +391,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
+					"/usr/local/include/json-c",
 					"$(PROJECT_DIR)/src",
 				);
 				LIBRARY_SEARCH_PATHS = "\"/usr/local/lib\"";

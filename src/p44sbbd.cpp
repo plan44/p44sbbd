@@ -33,6 +33,59 @@ using namespace p44;
 #define MAINLOOP_CYCLE_TIME_uS 33333 // 33mS
 
 
+typedef struct {
+  uint8_t cmd;
+  size_t answerbytes;
+  size_t parambytes;
+  const char *name;
+  const char *desc;
+} SBBCmdDesc;
+
+//  Kommando    Schreiben  Lesen
+//  ----------------------------
+//  DISP/RDB    C0         D0
+//  STAT        C1         D1
+//  RESET/VER   C4         D4
+//  ZERO        C5
+//  STEP        C6
+//  PULSE       C7
+//  TEST        C8
+//  CTRL        C9         D9
+//  NULL/POS    CA         DA
+//  WIN         CB         DB
+//  CALB        CC         DC
+//  TYPE        CD         DD
+//  ADDR        CE         DE
+//  SNBR        CF         DF
+
+const SBBCmdDesc sbbCmds[] = {
+  { 0xC0, 0, 1, "DISP", "Set Position" },
+  { 0xD0, 1, 0, "RDB",  "Readback Position" },
+  { 0xC1, 0, 0, "STAT",  "Status???" },
+  { 0xD1, 1, 1, "STAT",  "Status???" },
+  { 0xC4, 0, 0, "RESET",  "Reset???" },
+  { 0xD4, 2, 2, "VER",  "Get Version" },
+  { 0xC5, 0, 0, "ZERO",  "Zero???" },
+  { 0xC6, 0, 0, "STEP",  "Step???" },
+  { 0xC7, 0, 0, "PULSE",  "Pulse???" },
+  { 0xC8, 0, 0, "TEST",  "Test???" },
+  { 0xC9, 0, 0, "CTRL",  "Control???" },
+  { 0xD9, 1, 0, "CTRL",  "Control???" },
+  { 0xCA, 0, 0, "NULL",  "Null???" },
+  { 0xDA, 2, 0, "POS",  "Position???" },
+  { 0xCB, 0, 1, "WIN",  "Win???" },
+  { 0xDB, 1, 0, "WIN",  "Win???" },
+  { 0xCC, 0, 0, "CALB",  "Calibrate???" },
+  { 0xDC, 0, 0, "CALB",  "Calibrate???NoAnswer?" },
+  { 0xCD, 0, 0, "TYPE",  "Set Type???" },
+  { 0xDD, 1, 0, "TYPE",  "Get Type???" },
+  { 0xCE, 0, 1, "ADDR",  "Set Module Address" },
+  { 0xDE, 1, 0, "ADDR",  "Get Module Address" },
+  { 0xCF, 0, 0, "SNBR",  "Set Serial???" },
+  { 0xDF, 4, 0, "SNBR",  "Get Serial Number" },
+  { 0, 0, 0, NULL, NULL }
+};
+
 
 class P44sbbd : public CmdLineApp
 {
@@ -175,6 +228,18 @@ public:
   }
 
 
+
+  void infoAnswer(int aCmdIndex, const string &aAnswer, ErrorPtr aError)
+  {
+    if (Error::isOK(aError)) {
+      LOG(LOG_NOTICE, "%02X : %-4s -> (%lu) %s (%s)", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aAnswer.size(), binaryToHexString(aAnswer, ' ').c_str(), sbbCmds[aCmdIndex].desc);
+    }
+    else {
+      LOG(LOG_NOTICE, "%02X : %-4s -> Error: %s", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aError->description().c_str());
+    }
+  }
+
+
   JsonObjectPtr processRequest(string aUri, JsonObjectPtr aData, bool aIsAction)
   {
     ErrorPtr err;
@@ -185,7 +250,7 @@ public:
           if (o->isType(json_type_string)) {
             // hex string of bytes
             string bytes = hexToBinaryString(o->stringValue().c_str());
-            sbbComm->sendRawCommand(bytes.length(), (uint8_t *)bytes.c_str(), NULL);
+            sbbComm->sendRawCommand(bytes.length(), (uint8_t *)bytes.c_str(), 0, NULL);
           }
           else if (o->isType(json_type_array)) {
             // array of bytes
@@ -194,7 +259,7 @@ public:
             for (int i=0; i<nb; i++) {
               bytes[i] = (uint8_t)(o->arrayGet(i)->int32Value());
             }
-            sbbComm->sendRawCommand(nb, bytes, NULL);
+            sbbComm->sendRawCommand(nb, bytes, 0, NULL);
             delete[] bytes;
           }
         }
@@ -212,17 +277,17 @@ public:
             poscmd[1]=0xC0;
             poscmd[2]=moduleAddr;
             poscmd[3]=position;
-            sbbComm->sendRawCommand(sizeof(poscmd), poscmd, NULL);
+            sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
           }
           else if (aData->get("info")) {
             // create query commands
-            for (int i=0; i<16; i++) {
-              if (i!=2 && i!=3 && (i<5 || i>8)) {
+            for (int i=0; sbbCmds[i].cmd!=0; i++) {
+              if (sbbCmds[i].answerbytes>0) {
                 uint8_t infocmd[3];
                 infocmd[0]=0xFF;
-                infocmd[1]=0xD0+i;
+                infocmd[1]=sbbCmds[i].cmd;
                 infocmd[2]=moduleAddr;
-                sbbComm->sendRawCommand(sizeof(infocmd), infocmd, NULL);
+                sbbComm->sendRawCommand(sizeof(infocmd), infocmd, sbbCmds[i].answerbytes, boost::bind(&P44sbbd::infoAnswer, this, i, _1, _2));
               }
             }
           }
@@ -239,87 +304,12 @@ public:
           poscmd[3]=0x51;
           poscmd[2]=i;
           poscmd[4]=21;
-          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, NULL);
+          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
         }
       }
     }
-//    else if (aUri=="/machine") {
-//      if (aIsAction) {
-//        if (aData->get("restart", o)) {
-//          if (o->boolValue()) {
-//            restartAyab(true);
-//          }
-//        }
-//        else if (aData->get("setWidth", o)) {
-//          err = patternQueue->setWidth(o->int32Value());
-//          patternQueue->saveState(statedir.c_str(), false);
-//          // also needs restart
-//          restartAyab(true);
-//        }
-//        else {
-//          err = WebError::err(500, "Unknown action for /machine");
-//        }
-//      }
-//      else {
-//        o = JsonObject::newObj();
-//        o->add("status", JsonObject::newInt32(ayabComm->getStatus()));
-//        return o;
-//      }
-//    }
-//    else if (aUri=="/queue") {
-//      if (aIsAction) {
-//        // check action to execute on queue
-//        if (aData->get("addFile", o)) {
-//          bool restartKnitting = patternQueue->endOfPattern(); // if we've been at the end of the pattern, we'll need to restart after loading new pattern
-//          JsonObjectPtr p = aData->get("webURL");
-//          err = patternQueue->addFile(o->stringValue(), p->stringValue());
-//          patternQueue->saveState(statedir.c_str(), false);
-//          if (Error::isOK(err)) {
-//            // restart needed?
-//            if (restartKnitting) {
-//              MainLoop::currentMainLoop().cancelExecutionTicket(initiateTicket);
-//              initiateTicket = MainLoop::currentMainLoop().executeOnce(boost::bind(&P44ayabd::initiateKnitting, this), 1*Second);
-//            }
-//          }
-//        }
-//        else if (aData->get("removeFile", o)) {
-//          bool withDelete = false;
-//          JsonObjectPtr del;
-//          if (aData->get("delete", del)) {
-//            withDelete = del->boolValue();
-//          }
-//          err = patternQueue->removeFile(o->int32Value(), withDelete);
-//          patternQueue->saveState(statedir.c_str(), false);
-//        }
-//        else {
-//          err = WebError::err(500, "Unknown action for /queue");
-//        }
-//      }
-//      else {
-//        // just GET - return queue
-//        return patternQueue->queueStateJSON();
-//      }
-//    }
-//    else if (aUri=="/cursor") {
-//      if (aIsAction) {
-//        // check action to execute on cursor
-//        if (aData->get("setPosition", o)) {
-//          bool beginningOfEntry = false;
-//          JsonObjectPtr b;
-//          if (aData->get("boundary", b)) {
-//            beginningOfEntry = b->boolValue();
-//          }
-//          patternQueue->moveCursor(o->int32Value(), false, beginningOfEntry);
-//          patternQueue->saveState(statedir.c_str(), false);
-//        }
-//      }
-//      else {
-//        // just return current cursor position
-//        return patternQueue->cursorStateJSON();
-//      }
-//    }
     else {
-      err = WebError::err(500, "Unknown URI");
+      err = WebError::webErr(500, "Unknown URI");
     }
     // return error or ok
     if (Error::isOK(err))

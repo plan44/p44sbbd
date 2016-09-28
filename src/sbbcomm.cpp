@@ -66,8 +66,8 @@ void SbbComm::setConnectionSpecification(const char *aConnectionSpec, uint16_t a
     if (serialComm->requestConnection()) {
       serialComm->setRTS(false); // not sending
     }
-    // set accept buffer for re-assembling messages before processing
-    setAcceptBuffer(100); // we don't know yet how long SBB messages can get
+//    // set accept buffer for re-assembling messages before processing
+//    setAcceptBuffer(100); // we don't know yet how long SBB messages can get
   }
 }
 
@@ -101,41 +101,41 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
 
 
 
-
-void SbbComm::sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, StatusCB aStatusCB)
+void SbbComm::sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, int aExpectedBytes, SBBResultCB aResultCB)
 {
   LOG(LOG_INFO, "Posting command");
-  SerialOperationSend *opP = new SerialOperationSend(
-    aCmdLength,
-    aCmdBytesP,
-    boost::bind(&SbbComm::sbbCommandComplete, this, aStatusCB, _1, _3)
-  );
-
-  if (aExpectAnswer) {
-    SerialOperationPtr resp = SerialOperationPtr(new SmarterResponse);
+  SerialOperationSendPtr req = SerialOperationSendPtr(new SerialOperationSend);
+  req->setDataSize(aCmdLength);
+  req->appendData(aCmdLength, aCmdBytesP);
+  req->setInitiationDelay(0.2*Second);
+  if (aExpectedBytes>0) {
+    // we expect some answer bytes
+    SerialOperationReceivePtr resp = SerialOperationReceivePtr(new SerialOperationReceive);
+    resp->setCompletionCallback(boost::bind(&SbbComm::sbbCommandComplete, this, aResultCB, resp, _1));
+    resp->setExpectedBytes(aExpectedBytes);
+    resp->setTimeout(2*Second);
     req->setChainedOperation(resp);
-    resp->setCompletionCallback(boost::bind(&SmarterComm::apiResponseHandler, this, aResultHandler, resp, _1));
   }
   else {
-    req->setCompletionCallback(boost::bind(&SmarterComm::apiResponseHandler, this, aResultHandler, SerialOperationPtr(), _1));
+    req->setCompletionCallback(boost::bind(&SbbComm::sbbCommandComplete, this, aResultCB, SerialOperationPtr(), _1));
   }
-
-
-
-  if (opP) {
-    opP->setInitiationDelay(3*Second);
-    SerialOperationPtr op(opP);
-    queueSerialOperation(op);
-  }
+  queueSerialOperation(req);
   // process operations
   processOperations();
 }
 
 
-void SbbComm::sbbCommandComplete(StatusCB aStatusCB, SerialOperationPtr aSerialOperation, ErrorPtr aError)
+void SbbComm::sbbCommandComplete(SBBResultCB aResultCB, SerialOperationPtr aSerialOperation, ErrorPtr aError)
 {
   LOG(LOG_INFO, "Command complete");
-  if (aStatusCB) aStatusCB(aError);
+  string result;
+  if (Error::isOK(aError)) {
+    SerialOperationReceivePtr resp = boost::dynamic_pointer_cast<SerialOperationReceive>(aSerialOperation);
+    if (resp) {
+      result.assign((char *)resp->getDataP(), resp->getDataSize());
+    }
+  }
+  if (aResultCB) aResultCB(result, aError);
 }
 
 

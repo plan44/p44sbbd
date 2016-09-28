@@ -22,7 +22,7 @@
 #ifndef __p44sbbd__sbbcomm__
 #define __p44sbbd__sbbcomm__
 
-#include "p44_common.hpp"
+#include "p44utils_common.hpp"
 
 #include "serialqueue.hpp"
 
@@ -33,6 +33,9 @@ namespace p44 {
 
   class SbbComm;
   class SbbRow;
+
+
+  typedef boost::function<void (const string &aResponse, ErrorPtr aError)> SBBResultCB;
 
 
   typedef boost::intrusive_ptr<SbbComm> SbbCommPtr;
@@ -51,7 +54,7 @@ namespace p44 {
     void setConnectionSpecification(const char *aConnectionSpec, uint16_t aDefaultPort);
 
     /// send raw command (starting with BREAK)
-    void sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, StatusCB aStatusCB);
+    void sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, int aExpectedBytes, SBBResultCB aResultCB);
 
   protected:
 
@@ -63,7 +66,7 @@ namespace p44 {
     /// special transmitter
     size_t sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes);
 
-    void sbbCommandComplete(StatusCB aStatusCB, SerialOperationPtr aSerialOperation, ErrorPtr aError);
+    void sbbCommandComplete(SBBResultCB aStatusCB, SerialOperationPtr aSerialOperation, ErrorPtr aError);
 
   };
 
