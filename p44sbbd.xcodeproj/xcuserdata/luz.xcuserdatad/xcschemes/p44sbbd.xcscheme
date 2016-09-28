@@ -63,11 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "--rs485connection /dev/cu.usbserial-FTCCQVLE"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "--rs485connection /dev/cu.usbserial-AL00Y359"
+            argument = "--rs485connection /dev/cu.usbserial-A403OIP2"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

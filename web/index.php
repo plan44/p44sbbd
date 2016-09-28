@@ -182,6 +182,14 @@ function jsonApiCall($aUri, $aJsonRequest = false, $aAction = false)
         'sendbytes' => $hex
       ), true);
     }
+    else if (isset($_REQUEST['info'])) {
+      // all info about module
+      $addr = $_REQUEST['addr'];
+      jsonApiCall('/module', array(
+        'addr' => $addr,
+        'info' => 1
+      ), true);
+    }
 
 
     ?>
@@ -193,14 +201,15 @@ function jsonApiCall($aUri, $aJsonRequest = false, $aAction = false)
           <label for="pos">Blattnummer:</label>
           <input name="pos" id="pos" type="number" value="<?php echo $_REQUEST['pos']; ?>"/>
           <button id="setsingle" name="setsingle" type="submit" value="setsingle">Setzen</button>
+          <button id="info" name="info" type="submit" value="info">Info</button>
         </p>
         <p>
           <label for="hexbytes">Hexbytes:</label>
           <input name="hexbytes" id="hexbytes" type="text" size="80" value="<?php echo $_REQUEST['hexbytes']; ?>"/>
           <button id="sendhex" name="sendhex" type="submit" value="sendhex">Senden</button>
         </p>
-        
-        
+
+
       </form>
     </div>
 

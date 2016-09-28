@@ -195,7 +195,7 @@ public:
               bytes[i] = (uint8_t)(o->arrayGet(i)->int32Value());
             }
             sbbComm->sendRawCommand(nb, bytes, NULL);
-            delete bytes;
+            delete[] bytes;
           }
         }
       }
@@ -213,6 +213,18 @@ public:
             poscmd[2]=moduleAddr;
             poscmd[3]=position;
             sbbComm->sendRawCommand(sizeof(poscmd), poscmd, NULL);
+          }
+          else if (aData->get("info")) {
+            // create query commands
+            for (int i=0; i<16; i++) {
+              if (i!=2 && i!=3 && (i<5 || i>8)) {
+                uint8_t infocmd[3];
+                infocmd[0]=0xFF;
+                infocmd[1]=0xD0+i;
+                infocmd[2]=moduleAddr;
+                sbbComm->sendRawCommand(sizeof(infocmd), infocmd, NULL);
+              }
+            }
           }
         }
       }

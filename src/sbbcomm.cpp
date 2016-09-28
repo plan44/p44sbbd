@@ -26,7 +26,7 @@
 
 using namespace p44;
 
-#define SBB_BAUDRATE 19200
+#define SBB_COMMPARAMS "19200,8,N,1"
 
 
 // SBB RS485 protocol
@@ -59,7 +59,7 @@ void SbbComm::setConnectionSpecification(const char *aConnectionSpec, uint16_t a
     // simulation mode
   }
   else {
-    serialComm->setConnectionSpecification(aConnectionSpec, aDefaultPort, SBB_BAUDRATE);
+    serialComm->setConnectionSpecification(aConnectionSpec, aDefaultPort, SBB_COMMPARAMS);
     // we need a non-standard transmitter
     setTransmitter(boost::bind(&SbbComm::sbbTransmitter, this, _1, _2));
     // open connection so we can receive from start
@@ -89,7 +89,7 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
     // %%% for linux RS485 support, see http://retis.sssup.it/~scordino/code/serial-rs485.txt
     serialComm->setRTS(true);
     // send break
-    //serialComm->sendBreak();
+    serialComm->sendBreak();
     // now let standard transmitter do the rest
     res = standardTransmitter(aNumBytes, aBytes);
   }
@@ -110,7 +110,20 @@ void SbbComm::sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, StatusCB aS
     aCmdBytesP,
     boost::bind(&SbbComm::sbbCommandComplete, this, aStatusCB, _1, _3)
   );
+
+  if (aExpectAnswer) {
+    SerialOperationPtr resp = SerialOperationPtr(new SmarterResponse);
+    req->setChainedOperation(resp);
+    resp->setCompletionCallback(boost::bind(&SmarterComm::apiResponseHandler, this, aResultHandler, resp, _1));
+  }
+  else {
+    req->setCompletionCallback(boost::bind(&SmarterComm::apiResponseHandler, this, aResultHandler, SerialOperationPtr(), _1));
+  }
+
+
+
   if (opP) {
+    opP->setInitiationDelay(3*Second);
     SerialOperationPtr op(opP);
     queueSerialOperation(op);
   }
