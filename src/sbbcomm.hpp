@@ -54,7 +54,7 @@ namespace p44 {
     void setConnectionSpecification(const char *aConnectionSpec, uint16_t aDefaultPort);
 
     /// send raw command (starting with BREAK)
-    void sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, int aExpectedBytes, SBBResultCB aResultCB);
+    void sendRawCommand(const string aCommand, size_t aExpectedBytes, SBBResultCB aResultCB, MLMicroSeconds aInitiationDelay=0.2*Second);
 
   protected:
 

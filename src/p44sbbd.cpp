@@ -172,6 +172,8 @@ public:
       apiServer->setAllowNonlocalConnections(getOption("jsonapinonlocal"));
       apiServer->startServer(boost::bind(&P44sbbd::apiConnectionHandler, this, _1), 3);
     }
+//    // start status polling
+//    statusPoll();
   };
 
 
@@ -228,14 +230,59 @@ public:
   }
 
 
+  void statusPoll()
+  {
+    string statuscmd = "\xFF\xD9";
+    statuscmd += (char)55;
+    sbbComm->sendRawCommand(statuscmd, 1, boost::bind(&P44sbbd::statusAnswer, this, _1, _2));
+  }
+
+
+  void statusAnswer(const string &aAnswer, ErrorPtr aError)
+  {
+    if (aAnswer.size()>0) {
+      LOG(LOG_NOTICE, "CTRL poll answer = %02X", aAnswer[0]);
+    }
+    MainLoop::currentMainLoop().executeOnce(boost::bind(&P44sbbd::statusPoll,this), 0.2*Second);
+  }
+
+
+
+  void setPosition(int aModuleAddr, int aPosition)
+  {
+    // create command
+    string poscmd = "\xFF\xC0";
+    poscmd += (char)aModuleAddr;
+    poscmd += (char)aPosition;
+    sbbComm->sendRawCommand(poscmd, 0, NULL);
+//    sbbComm->sendRawCommand(poscmd, 0, NULL);
+//    poscmd = "\xFF\xD1";
+//    poscmd += (char)aModuleAddr;
+//    sbbComm->sendRawCommand(poscmd, 0, NULL);
+  }
+
+
+  void getInfo(int aModuleAddr)
+  {
+    LOG(LOG_NOTICE, "\nModule 0x%02X/%d", aModuleAddr, aModuleAddr);
+    for (int i=0; sbbCmds[i].cmd!=0; i++) {
+      if (sbbCmds[i].answerbytes>0) {
+        string infocmd = "\xFF";
+        infocmd += (char)sbbCmds[i].cmd;
+        infocmd += (char)aModuleAddr;
+        sbbComm->sendRawCommand(infocmd, sbbCmds[i].answerbytes, boost::bind(&P44sbbd::infoAnswer, this, i, _1, _2));
+      }
+    }
+  }
+
 
   void infoAnswer(int aCmdIndex, const string &aAnswer, ErrorPtr aError)
   {
     if (Error::isOK(aError)) {
-      LOG(LOG_NOTICE, "%02X : %-4s -> (%lu) %s (%s)", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aAnswer.size(), binaryToHexString(aAnswer, ' ').c_str(), sbbCmds[aCmdIndex].desc);
+      LOG(LOG_NOTICE, "- %02X : %-4s -> (%lu) %s (%s)", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aAnswer.size(), binaryToHexString(aAnswer, ' ').c_str(), sbbCmds[aCmdIndex].desc);
     }
     else {
-      LOG(LOG_NOTICE, "%02X : %-4s -> Error: %s", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aError->description().c_str());
+      LOG(LOG_NOTICE, "- %02X : %-4s -> Error: %s", sbbCmds[aCmdIndex].cmd, sbbCmds[aCmdIndex].name, aError->description().c_str());
     }
   }
 
@@ -250,17 +297,16 @@ public:
           if (o->isType(json_type_string)) {
             // hex string of bytes
             string bytes = hexToBinaryString(o->stringValue().c_str());
-            sbbComm->sendRawCommand(bytes.length(), (uint8_t *)bytes.c_str(), 0, NULL);
+            sbbComm->sendRawCommand(bytes, 0, NULL);
           }
           else if (o->isType(json_type_array)) {
             // array of bytes
             size_t nb = o->arrayLength();
-            uint8_t *bytes = new uint8_t[nb];
+            string bytes;
             for (int i=0; i<nb; i++) {
               bytes[i] = (uint8_t)(o->arrayGet(i)->int32Value());
             }
-            sbbComm->sendRawCommand(nb, bytes, 0, NULL);
-            delete[] bytes;
+            sbbComm->sendRawCommand(bytes, 0, NULL);
           }
         }
       }
@@ -271,43 +317,28 @@ public:
           int moduleAddr = o->int32Value();
           if (aData->get("pos", o)) {
             int position = o->int32Value();
-            // create command
-            uint8_t poscmd[4];
-            poscmd[0]=0xFF;
-            poscmd[1]=0xC0;
-            poscmd[2]=moduleAddr;
-            poscmd[3]=position;
-            sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
+            setPosition(moduleAddr, position);
           }
           else if (aData->get("info")) {
             // create query commands
-            for (int i=0; sbbCmds[i].cmd!=0; i++) {
-              if (sbbCmds[i].answerbytes>0) {
-                uint8_t infocmd[3];
-                infocmd[0]=0xFF;
-                infocmd[1]=sbbCmds[i].cmd;
-                infocmd[2]=moduleAddr;
-                sbbComm->sendRawCommand(sizeof(infocmd), infocmd, sbbCmds[i].answerbytes, boost::bind(&P44sbbd::infoAnswer, this, i, _1, _2));
-              }
-            }
+            getInfo(moduleAddr);
           }
         }
       }
     }
-    else if (aUri=="/scan") {
-      if (aIsAction) {
-        for (int i=0; i<256; i++) {
-          // create command
-          uint8_t poscmd[5];
-          poscmd[0]=0xFF;
-          poscmd[1]=0xC0;
-          poscmd[3]=0x51;
-          poscmd[2]=i;
-          poscmd[4]=21;
-          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
-        }
-      }
-    }
+//    else if (aUri=="/scan") {
+//      if (aIsAction) {
+//        for (int i=0; i<256; i++) {
+//          // create command
+//          uint8_t poscmd[5];
+//          poscmd[0]=0xFF;
+//          poscmd[1]=0xC0;
+//          poscmd[3]=0x07;
+//          poscmd[2]=i;
+//          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
+//        }
+//      }
+//    }
     else {
       err = WebError::webErr(500, "Unknown URI");
     }

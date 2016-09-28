@@ -26,7 +26,7 @@
 
 using namespace p44;
 
-#define SBB_COMMPARAMS "19200,8,N,1"
+#define SBB_COMMPARAMS "19200,8,N,2"
 
 
 // SBB RS485 protocol
@@ -77,12 +77,12 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
   ssize_t res = 0;
   ErrorPtr err = serialComm->establishConnection();
   if (Error::isOK(err)) {
-    if (LOGENABLED(LOG_INFO)) {
+    if (LOGENABLED(LOG_NOTICE)) {
       string m;
       for (size_t i=0; i<aNumBytes; i++) {
         string_format_append(m, " %02X", aBytes[i]);
       }
-      LOG(LOG_INFO, "transmitting bytes:%s", m.c_str());
+      LOG(LOG_NOTICE, "transmitting bytes:%s", m.c_str());
     }
     // enable transmitter
     // %%% for now, assume adapter will do that automatically.
@@ -101,13 +101,13 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
 
 
 
-void SbbComm::sendRawCommand(size_t aCmdLength, uint8_t *aCmdBytesP, int aExpectedBytes, SBBResultCB aResultCB)
+void SbbComm::sendRawCommand(const string aCommand, size_t aExpectedBytes, SBBResultCB aResultCB, MLMicroSeconds aInitiationDelay)
 {
   LOG(LOG_INFO, "Posting command");
   SerialOperationSendPtr req = SerialOperationSendPtr(new SerialOperationSend);
-  req->setDataSize(aCmdLength);
-  req->appendData(aCmdLength, aCmdBytesP);
-  req->setInitiationDelay(0.2*Second);
+  req->setDataSize(aCommand.size());
+  req->appendData(aCommand.size(), (uint8_t *)aCommand.c_str());
+  req->setInitiationDelay(aInitiationDelay);
   if (aExpectedBytes>0) {
     // we expect some answer bytes
     SerialOperationReceivePtr resp = SerialOperationReceivePtr(new SerialOperationReceive);
@@ -150,7 +150,7 @@ ssize_t SbbComm::acceptExtraBytes(size_t aNumBytes, uint8_t *aBytes)
     for (size_t i=0; i<aNumBytes; i++) {
       string_format_append(m, " %02X", aBytes[i]);
     }
-    LOG(LOG_INFO, "received bytes:%s", m.c_str());
+    LOG(LOG_NOTICE, "received extra bytes:%s", m.c_str());
   }
   return (ssize_t)aNumBytes;
 }

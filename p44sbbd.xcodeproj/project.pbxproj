@@ -148,10 +148,10 @@
 		ED8622C11AC29D4800CB818B /* src */ = {
 			isa = PBXGroup;
 			children = (
-				ED1A9AE41CA0993800F4A22E /* p44sbbd.cpp */,
+				ED8622C91AC29D7A00CB818B /* p44utils */,
 				ED1A9AE51CA0993800F4A22E /* sbbcomm.cpp */,
 				ED1A9AE61CA0993800F4A22E /* sbbcomm.hpp */,
-				ED8622C91AC29D7A00CB818B /* p44utils */,
+				ED1A9AE41CA0993800F4A22E /* p44sbbd.cpp */,
 			);
 			path = src;
 			sourceTree = "<group>";
