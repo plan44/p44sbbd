@@ -87,7 +87,7 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
     // enable transmitter
     // %%% for now, assume adapter will do that automatically.
     // %%% for linux RS485 support, see http://retis.sssup.it/~scordino/code/serial-rs485.txt
-    serialComm->setRTS(true);
+    //serialComm->setRTS(true);
     // send break
     serialComm->sendBreak();
     // now let standard transmitter do the rest

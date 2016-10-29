@@ -67,6 +67,14 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--rs485connection /dev/cu.usbserial-FTAJM1FE"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--rs485connection /dev/cu.usbserial-FTF0GMU8"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--jsonapiport 9999"
             isEnabled = "YES">
          </CommandLineArgument>
