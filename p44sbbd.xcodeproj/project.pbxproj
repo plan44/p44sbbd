@@ -112,7 +112,7 @@
 		ED8623011AC29DB600CB818B /* application.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = application.hpp; sourceTree = "<group>"; };
 		ED8623021AC29DB600CB818B /* jsonobject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = jsonobject.cpp; sourceTree = "<group>"; };
 		ED8623031AC29DB600CB818B /* jsonobject.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = jsonobject.hpp; sourceTree = "<group>"; };
-		ED8623041AC29DB600CB818B /* p44_common.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = p44_common.hpp; sourceTree = "<group>"; };
+		ED8623041AC29DB600CB818B /* p44utils_common.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = p44utils_common.hpp; sourceTree = "<group>"; };
 		ED8623051AC29DB600CB818B /* gpio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gpio.h; sourceTree = "<group>"; };
 		EDDC97761D9BCD910099C613 /* spi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = spi.cpp; sourceTree = "<group>"; };
 		EDDC97771D9BCD910099C613 /* spi.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = spi.hpp; sourceTree = "<group>"; };
@@ -220,7 +220,7 @@
 				ED8622F11AC29DB600CB818B /* ssdpsearch.hpp */,
 				ED8622DC1AC29DB600CB818B /* utils.cpp */,
 				ED8622F91AC29DB600CB818B /* utils.hpp */,
-				ED8623041AC29DB600CB818B /* p44_common.hpp */,
+				ED8623041AC29DB600CB818B /* p44utils_common.hpp */,
 			);
 			path = p44utils;
 			sourceTree = "<group>";

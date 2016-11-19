@@ -87,6 +87,18 @@ const SBBCmdDesc sbbCmds[] = {
 };
 
 
+static const char *weekdays[7] = {
+  "MO",
+  "DI",
+  "MI",
+  "DO",
+  "FR",
+  "SA",
+  "SO"
+};
+
+
+
 class P44sbbd : public CmdLineApp
 {
   typedef CmdLineApp inherited;
@@ -101,11 +113,25 @@ class P44sbbd : public CmdLineApp
 
   long initiateTicket;
 
+  // clock
+  bool clockEnabled;
+  int hourmodule;
+  int minutemodule;
+  int weekday1module;
+  int weekday2module;
+  long clockTicket;
+
 public:
 
   P44sbbd() :
     apiMode(false),
-    initiateTicket(0)
+    initiateTicket(0),
+    clockEnabled(false),
+    hourmodule(-1),
+    minutemodule(-1),
+    weekday1module(-1),
+    weekday2module(-1),
+    clockTicket(0)
   {
   };
 
@@ -119,6 +145,11 @@ public:
       { 'W', "jsonapiport",     true,  "port;server port number for JSON API" },
       { 0  , "jsonapinonlocal", false, "allow connection to JSON API from non-local clients" },
       { 0  , "rs485connection", true,  "serial_if;RS485 serial interface where display is connected (/device or IP:port)" },
+      { 0  , "rs485txenable",   true,  "pinspec;a digital output pin specification for TX driver enable or DTR or RTS" },
+      { 0  , "rs485txoffdelay", true,  "delay;time to keep tx enabled after sending [ms], defaults to 0" },
+      { 0  , "rs485rxenable",   true,  "pinspec;a digital output pin specification for RX driver enable" },
+      { 0  , "timedisplay",     true,  "hourmodule,minutemodule;module addresses to be used for time display" },
+      { 0  , "weekdaydisplay",  true,  "firstchar[,secondchar];module addresses to be used for weekday display" },
       { 0  , "statedir",        true,  "path;writable directory where to store state information. Defaults to " DEFAULT_STATE_DIR },
       { 'h', "help",            false, "show this text" },
       { 0, NULL } // list terminator
@@ -155,10 +186,16 @@ public:
 
     // get AYAB connection
     // - set interface
-    string connstring;
-    if (getStringOption("rs485connection", connstring)) {
+    string s;
+    if (getStringOption("rs485connection", s)) {
       sbbComm = SbbCommPtr(new SbbComm(MainLoop::currentMainLoop()));
-      sbbComm->setConnectionSpecification(connstring.c_str(), 2109);
+      sbbComm->setConnectionSpecification(s.c_str(), 2109);
+      string tx,rx;
+      int txoffdelay = 0;
+      getStringOption("rs485txenable", tx);
+      getStringOption("rs485rxenable", rx);
+      getIntOption("rs485txoffdelay", txoffdelay);
+      sbbComm->setRS485DriverControl(tx.c_str(), rx.c_str(), txoffdelay*MilliSecond);
     }
     else {
       terminateAppWith(TextError::err("no RS485 connection specified"));
@@ -172,6 +209,19 @@ public:
       apiServer->setAllowNonlocalConnections(getOption("jsonapinonlocal"));
       apiServer->startServer(boost::bind(&P44sbbd::apiConnectionHandler, this, _1), 3);
     }
+    // - check for clock
+    if (getStringOption("timedisplay", s)) {
+      sscanf(s.c_str(), "%d,%d", &hourmodule, &minutemodule);
+      clockEnabled = true;
+    }
+    if (getStringOption("weekdaydisplay", s)) {
+      sscanf(s.c_str(), "%d,%d", &weekday1module, &weekday2module);
+      clockEnabled = true;
+    }
+    if (clockEnabled) {
+      // schedule update
+      clockTicket = MainLoop::currentMainLoop().executeOnce(boost::bind(&P44sbbd::clockUpdate, this));
+    }
 //    // start status polling
 //    statusPoll();
   };
@@ -181,6 +231,35 @@ public:
   {
     // clean up
   }
+
+
+
+  void clockUpdate()
+  {
+    if (clockEnabled) {
+      struct tm t;
+      time_t tim = time(NULL);
+      localtime_r(&tim, &t);
+      // update clock display
+      if (hourmodule>=0) {
+        sbbComm->setModuleValue(hourmodule, moduletype_hour, t.tm_hour);
+      }
+      if (minutemodule>=0) {
+        sbbComm->setModuleValue(minutemodule, moduletype_minute, t.tm_min);
+      }
+      if (weekday1module>=0) {
+        // need weekday
+        sbbComm->setModuleValue(weekday1module, moduletype_alphanum, weekdays[t.tm_wday][0]);
+        if (weekday2module) {
+          sbbComm->setModuleValue(weekday2module, moduletype_alphanum, weekdays[t.tm_wday][1]);
+        }
+      }
+      // schedule next update
+      clockTicket = MainLoop::currentMainLoop().executeOnce(boost::bind(&P44sbbd::clockUpdate, this), (60-t.tm_sec)*Second);
+    }
+  }
+
+
 
 
   SocketCommPtr apiConnectionHandler(SocketCommPtr aServerSocketComm)
@@ -255,10 +334,6 @@ public:
     poscmd += (char)aModuleAddr;
     poscmd += (char)aPosition;
     sbbComm->sendRawCommand(poscmd, 0, NULL);
-//    sbbComm->sendRawCommand(poscmd, 0, NULL);
-//    poscmd = "\xFF\xD1";
-//    poscmd += (char)aModuleAddr;
-//    sbbComm->sendRawCommand(poscmd, 0, NULL);
   }
 
 
@@ -326,19 +401,6 @@ public:
         }
       }
     }
-//    else if (aUri=="/scan") {
-//      if (aIsAction) {
-//        for (int i=0; i<256; i++) {
-//          // create command
-//          uint8_t poscmd[5];
-//          poscmd[0]=0xFF;
-//          poscmd[1]=0xC0;
-//          poscmd[3]=0x07;
-//          poscmd[2]=i;
-//          sbbComm->sendRawCommand(sizeof(poscmd), poscmd, 0, NULL);
-//        }
-//      }
-//    }
     else {
       err = WebError::webErr(500, "Unknown URI");
     }

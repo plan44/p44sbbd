@@ -42,7 +42,10 @@ using namespace p44;
 #pragma mark - SbbComm
 
 SbbComm::SbbComm(MainLoop &aMainLoop) :
-	inherited(aMainLoop)
+	inherited(aMainLoop),
+  txOffDelay(0),
+  txEnableMode(txEnable_none),
+  txOffTicket(0)
 {
 }
 
@@ -72,6 +75,57 @@ void SbbComm::setConnectionSpecification(const char *aConnectionSpec, uint16_t a
 }
 
 
+void SbbComm::setRS485DriverControl(const char *aTxEnablePinSpec, const char *aRxEnablePinSpec, MLMicroSeconds aOffDelay)
+{
+  txOffDelay = aOffDelay;
+  if (strcmp(aTxEnablePinSpec, "DTR")) {
+    txEnableMode = txEnable_dtr;
+  }
+  else if (strcmp(aTxEnablePinSpec, "RTS")) {
+    txEnableMode = txEnable_rts;
+  }
+  else {
+    // digital I/O line
+    txEnableMode = txEnable_io;
+    txEnable = DigitalIoPtr(new DigitalIo(aTxEnablePinSpec, true, false));
+    rxEnable = DigitalIoPtr(new DigitalIo(aRxEnablePinSpec, true, true));
+  }
+}
+
+
+void SbbComm::enableSendingImmediate(bool aEnable)
+{
+  switch(txEnableMode) {
+    case txEnable_dtr:
+      serialComm->setDTR(aEnable);
+      return;
+    case txEnable_rts:
+      serialComm->setRTS(aEnable);
+      return;
+    case txEnable_io:
+      rxEnable->set(!aEnable);
+      txEnable->set(aEnable);
+      return;
+    default:
+      return; // NOP
+  }
+}
+
+
+void SbbComm::enableSending(bool aEnable)
+{
+  MainLoop::currentMainLoop().cancelExecutionTicket(txOffTicket);
+  if (aEnable || txOffDelay==0) {
+    enableSendingImmediate(aEnable);
+  }
+  else {
+    txOffTicket = MainLoop::currentMainLoop().executeOnce(boost::bind(&SbbComm::enableSendingImmediate, this, aEnable), txOffDelay);
+  }
+}
+
+
+
+
 size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
 {
   ssize_t res = 0;
@@ -84,14 +138,14 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
       }
       LOG(LOG_NOTICE, "transmitting bytes:%s", m.c_str());
     }
-    // enable transmitter
-    // %%% for now, assume adapter will do that automatically.
-    // %%% for linux RS485 support, see http://retis.sssup.it/~scordino/code/serial-rs485.txt
-    //serialComm->setRTS(true);
+    // enable sending
+    enableSending(true);
     // send break
     serialComm->sendBreak();
     // now let standard transmitter do the rest
     res = standardTransmitter(aNumBytes, aBytes);
+    // disable sending
+    enableSending(false);
   }
   else {
     LOG(LOG_DEBUG, "SbbComm::sbbTransmitter error - connection could not be established!");
@@ -136,6 +190,60 @@ void SbbComm::sbbCommandComplete(SBBResultCB aResultCB, SerialOperationPtr aSeri
     }
   }
   if (aResultCB) aResultCB(result, aError);
+}
+
+
+void SbbComm::setModuleValue(uint8_t aModuleAddr, SbbModuleType aType, uint8_t aValue)
+{
+  uint8_t pos;
+  switch (aType) {
+    case moduletype_alphanum :
+      // use characters. Order in module is
+      // ABCDEFGHIJKLMNOPQRSTUVWXYZ/-1234567890.<space>
+      // 0123456789012345678901234567890123456789
+      // 0         1         2         3        3
+      if (aValue>='A' && aValue<='Z') {
+        pos = aValue-'A';
+      }
+      else if (aValue=='/') {
+        pos = 26;
+      }
+      else if (aValue=='-') {
+        pos = 27;
+      }
+      else if (aValue>='1' && aValue<='9') {
+        pos = aValue-'1'+28;
+      }
+      else if (aValue=='.') {
+        pos = 38;
+      }
+      else {
+        // everything else: space
+        pos = 39;
+      }
+      break;
+    case moduletype_hour :
+      // hours 0..23, >23 = space
+      pos = aValue>23 ? 24 : aValue;
+      break;
+    case moduletype_minute :
+      // 0..59, >59 = space
+      // pos 0..28 are minutes 31..59
+      // pos 29 is space
+      // pos 30..60 are minutes 00..30
+      // pos 61 is space
+      pos = aValue>59 ? 29 : (aValue<31 ? 30+aValue : aValue-31);
+      break;
+    case moduletype_40 :
+    case moduletype_62 :
+      // just use as-is
+      pos = aValue;
+      break;
+  }
+  string poscmd = "\xFF\xC0";
+  poscmd += (char)aModuleAddr;
+  poscmd += (char)pos;
+  sendRawCommand(poscmd, 0, NULL);
 }
 
 

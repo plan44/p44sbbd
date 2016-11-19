@@ -67,6 +67,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--timedisplay 55,8"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--rs485connection /dev/cu.usbserial-FTAJM1FE"
             isEnabled = "NO">
          </CommandLineArgument>
