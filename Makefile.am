@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-bin_PROGRAMS = p44ayabd
+bin_PROGRAMS = p44sbbd
 
 # p44sbbd
 
@@ -11,21 +11,22 @@ else
 p44sbbd_DEBUG =
 endif
 
-if RASPBERRYPI
+if P44_BUILD_RPI
 # This is an ugly hack, but I could not find a way to refer to the sysroot prefix for the -L path.
 # Note: the entire library situation is ugly, as toolchain is not complete and autoconf lib macros dont work.
 TOOLCHAIN_SYSROOT = /Volumes/xtools/arm-none-linux-gnueabi/arm-none-linux-gnueabi/sysroot
 p44sbbd_LDADD = $(PTHREAD_LIBS) -ljson-c -ldl -L${TOOLCHAIN_SYSROOT}/${libdir}/arm-linux-gnueabihf
 else
 # automatic libs does not work right now due to commented out checks in autoconf.ac, so specify -l directly
-# p44sbbd_LDADD = $(JSONC_LIBS) $(PTHREAD_LIBS)
-p44sbbd_LDADD = $(PTHREAD_LIBS) -lpng16 -ljson -ldl
+p44sbbd_LDADD = $(JSONC_LIBS) $(PTHREAD_LIBS)
 endif
 
 
 p44sbbd_CXXFLAGS = \
   -I ${srcdir}/src/p44utils \
   -I ${srcdir}/src \
+  -D DISABLE_I2C=1 \
+  -D DISABLE_SPI=1 \
   ${BOOST_CPPFLAGS} \
   ${JSONC_CFLAGS} \
   ${PTHREAD_CFLAGS} \
@@ -55,6 +56,8 @@ p44sbbd_SOURCES = \
   src/p44utils/gpio.hpp \
   src/p44utils/i2c.cpp \
   src/p44utils/i2c.hpp \
+  src/p44utils/spi.cpp \
+  src/p44utils/spi.hpp \
   src/p44utils/iopin.cpp \
   src/p44utils/iopin.hpp \
   src/p44utils/jsoncomm.cpp \
