@@ -78,10 +78,10 @@ void SbbComm::setConnectionSpecification(const char *aConnectionSpec, uint16_t a
 void SbbComm::setRS485DriverControl(const char *aTxEnablePinSpec, const char *aRxEnablePinSpec, MLMicroSeconds aOffDelay)
 {
   txOffDelay = aOffDelay;
-  if (strcmp(aTxEnablePinSpec, "DTR")) {
+  if (strcmp(aTxEnablePinSpec, "DTR")==0) {
     txEnableMode = txEnable_dtr;
   }
-  else if (strcmp(aTxEnablePinSpec, "RTS")) {
+  else if (strcmp(aTxEnablePinSpec, "RTS")==0) {
     txEnableMode = txEnable_rts;
   }
   else {
