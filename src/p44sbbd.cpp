@@ -366,7 +366,8 @@ public:
   {
     ErrorPtr err;
     JsonObjectPtr o;
-    if (aUri=="/interface") {
+    if (aUri.size()>0 && aUri[0]=='/') aUri.erase(0, 1); // remove trailing slash if there is one
+    if (aUri=="interface") {
       if (aIsAction) {
         if (aData->get("sendbytes", o)) {
           if (o->isType(json_type_string)) {
@@ -386,7 +387,7 @@ public:
         }
       }
     }
-    else if (aUri=="/module") {
+    else if (aUri=="module") {
       if (aIsAction) {
         if (aData->get("addr", o)) {
           int moduleAddr = o->int32Value();

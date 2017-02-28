@@ -157,7 +157,7 @@ size_t SbbComm::sbbTransmitter(size_t aNumBytes, const uint8_t *aBytes)
 
 void SbbComm::sendRawCommand(const string aCommand, size_t aExpectedBytes, SBBResultCB aResultCB, MLMicroSeconds aInitiationDelay)
 {
-  LOG(LOG_INFO, "Posting command");
+  LOG(LOG_INFO, "Posting command (size=%d)", aCommand.size());
   SerialOperationSendPtr req = SerialOperationSendPtr(new SerialOperationSend);
   req->setDataSize(aCommand.size());
   req->appendData(aCommand.size(), (uint8_t *)aCommand.c_str());
