@@ -4,7 +4,7 @@
 
 For running on OpenWrt/LEDE targets such as Onion Omega1/Omega2, you may want to use the p44sbbd package from the [plan44 feed](https://github.com/plan44/plan44-openwrt-feed.git).
 
-This is the living room clock which is driven by the current version of p44sbbd, using a [onion.io Omega1](https://onion.io) on a custom pcb ordered from [oshpark.com]().
+This is the living room clock which is driven by the current version of p44sbbd, using a [onion.io](https://onion.io) Omega1 on a custom pcb.
 
 Note that this is still work in progress - I have projects beyond just a clock using these modules ;-)
 
